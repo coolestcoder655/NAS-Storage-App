@@ -8,3 +8,9 @@ pub fn run() {
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
+
+// Example greet command for Tauri
+#[tauri::command]
+fn greet(name: String) -> String {
+    format!("Hello, {}!", name)
+}

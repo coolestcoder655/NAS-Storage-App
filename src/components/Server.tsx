@@ -2,20 +2,20 @@ import { Server as ServerIcon, Wifi } from "lucide-react";
 
 export interface SavedConn {
     name: string;
-    detail: string;
-    protocol: string;
+    ip: string;
+    port: number;
+    username: string;
+    passcode: string;
 }
 
 type Props = {
     conn: SavedConn;
-    startConnectFlow: (conn: SavedConn) => void;
 };
 
 // Single reusable card component
-const Server: React.FC<Props> = ({ conn, startConnectFlow }) => {
+const Server: React.FC<Props> = ({ conn }) => {
     return (
         <div
-            onClick={() => startConnectFlow(conn)}
             role="button"
             className="group flex cursor-pointer items-center justify-between rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm transition hover:shadow-md"
         >
@@ -26,7 +26,7 @@ const Server: React.FC<Props> = ({ conn, startConnectFlow }) => {
                 <div>
                     <div className="font-medium text-slate-900">{conn.name}</div>
                     <div className="text-xs text-slate-500">
-                        {conn.detail} ({conn.protocol})
+                        {conn.ip}:{conn.port}
                     </div>
                 </div>
             </div>

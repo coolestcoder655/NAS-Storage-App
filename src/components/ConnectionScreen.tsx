@@ -1,12 +1,14 @@
-import { useState, useEffect, useRef } from 'react';
-import { Server as ServerIcon, Plus, Wifi, LoaderCircle, CheckCircle2, XCircle } from "lucide-react";
+import { useState } from 'react';
+import { Server as ServerIcon, Plus, Wifi, LoaderCircle, XCircle } from "lucide-react";
 import ServerCard, { SavedConn } from "./Server";
-
+import { invoke } from '@tauri-apps/api/core';
+import { useConnection } from '../context/ConnectionContext';
 
 const savedConnections: SavedConn[] = [
-    { name: "Home NAS", detail: "192.168.1.100:22", protocol: "SFTP" },
-    { name: "Office Storage", detail: "192.168.1.150:21", protocol: "FTP" },
-    { name: "Media Server", detail: "192.168.1.200:22", protocol: "SFTP" },
+    { name: "Test Server", ip: "192.168.1.34", port: 22, username: 'host', passcode: 'host' },
+    { name: "Home NAS", ip: "192.168.1.100", port: 22, username: 'user', passcode: 'pass' },
+    { name: "Office Storage", ip: "192.168.1.150", port: 21, username: 'user', passcode: 'pass' },
+    { name: "Media Server", ip: "192.168.1.200", port: 22, username: 'user', passcode: 'pass' },
 ];
 
 
@@ -18,54 +20,42 @@ interface ConnectionScreenProps {
 const ConnectionScreen: React.FC<ConnectionScreenProps> = ({ onConnect }) => {
     const [modalMode, setModalMode] = useState<null | "new" | "direct">(null);
     const [activeConn, setActiveConn] = useState<SavedConn | null>(null);
-    const [connectStep, setConnectStep] = useState<number>(-1); // -1 = idle, 0..2 steps
-    const stepTimer = useRef<number | null>(null);
+    const [connecting, setConnecting] = useState<boolean>(false);
+    const { ip, port, path, setIp, setPort, setPath } = useConnection();
 
     const closeModal = () => setModalMode(null);
 
     const cancelConnect = () => {
-        if (stepTimer.current) {
-            clearTimeout(stepTimer.current);
-            stepTimer.current = null;
-        }
-        setConnectStep(-1);
+        setConnecting(false);
         setActiveConn(null);
     };
 
-    const startConnectFlow = (conn: SavedConn) => {
-        setModalMode(null); // ensure form modal closed
+    const setUpConnection = async (conn: SavedConn) => {
         setActiveConn(conn);
-        setConnectStep(0);
+        setConnecting(true);
+        const { ip, port, username, passcode } = conn;
+        try {
+            const files = await invoke('list_files', {
+                ip,
+                port,
+                username,
+                passcode,
+                path: '/'
+            });
+            setConnecting(false);
+            setActiveConn(null);
+            onConnect();
+            setIp(ip);
+            setPort(String(port));
+            setPath('/');
+        } catch (error) {
+            setConnecting(false);
+            setActiveConn(null);
+            console.error('Error listing files:', error);
+        }
     };
 
-    useEffect(() => {
-        if (connectStep === -1) return;
-
-        if (stepTimer.current) {
-            clearTimeout(stepTimer.current);
-        }
-
-        // delays per step to visualize progress
-        const delays = [1200, 1400, 1200];
-        const currentDelay = delays[Math.min(connectStep, delays.length - 1)];
-
-        stepTimer.current = window.setTimeout(() => {
-            if (connectStep < 2) {
-                setConnectStep((s) => s + 1);
-            } else {
-                // success shown, then call onConnect and close
-                cancelConnect();
-                onConnect();
-            }
-        }, currentDelay) as unknown as number;
-
-        return () => {
-            if (stepTimer.current) {
-                clearTimeout(stepTimer.current);
-                stepTimer.current = null;
-            }
-        };
-    }, [connectStep, onConnect]);
+    // Removed useEffect for connectStep and stepTimer logic
     return (
         <div className="min-h-screen bg-gray-50 text-slate-800">
             {/* Top bar */}
@@ -97,7 +87,7 @@ const ConnectionScreen: React.FC<ConnectionScreenProps> = ({ onConnect }) => {
                     <h2 className="mb-4 text-lg font-semibold">Saved Connections</h2>
                     <div className="space-y-3">
                         {savedConnections.map((c) => (
-                            <ServerCard key={c.name} conn={c} startConnectFlow={startConnectFlow} />
+                            <ServerCard key={c.name} conn={c} />
                         ))}
                     </div>
                 </section>
@@ -216,39 +206,24 @@ const ConnectionScreen: React.FC<ConnectionScreenProps> = ({ onConnect }) => {
                 </div>
             )}
 
-            {/* Connection Progress Modal */}
-            {activeConn && connectStep >= 0 && (
+            {/* Simple Connecting Modal */}
+            {activeConn && connecting && (
                 <div className="fixed inset-0 z-50 flex items-center bg-white justify-center">
                     <div className="absolute inset-0" onClick={cancelConnect} />
                     <div className="relative w-full max-w-lg rounded-xl bg-white p-8 shadow-xl">
-                        {/* centered status icon */}
-                        <div className="absolute top-4 left-1/2 -translate-x-1/2">
-                            {connectStep < 2 ? (
-                                <LoaderCircle className={`h-6 w-6 ${connectStep === 0 ? "text-blue-500" : "text-amber-500"} animate-spin`} />
-                            ) : (
-                                <CheckCircle2 className="h-7 w-7 text-emerald-500" />
-                            )}
-                        </div>
-                        <div className="text-center mt-5">
-                            <h3 className="text-lg font-semibold">
-                                {connectStep === 0 && "Connecting to NAS..."}
-                                {connectStep === 1 && "Authenticating..."}
-                                {connectStep === 2 && "Connected successfully!"}
-                            </h3>
-                            <p className="mt-2 text-slate-600">Connecting to {activeConn.name}</p>
-                            <p className="mt-2 text-xs text-slate-500">
-                                {activeConn.detail} ({activeConn.protocol})
-                            </p>
-                            <div className="mt-6">
-                                <button
-                                    type="button"
-                                    onClick={cancelConnect}
-                                    className="inline-flex items-center gap-2 rounded-lg border border-rose-200 bg-rose-50 px-4 py-2 text-sm font-medium text-rose-700 shadow-sm transition hover:bg-rose-100 hover:border-rose-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-400/40 focus-visible:ring-offset-2 focus-visible:ring-offset-white active:translate-y-px"
-                                >
-                                    <XCircle className="h-4 w-4 text-rose-600" />
-                                    Cancel
-                                </button>
-                            </div>
+                        <div className="flex flex-col items-center justify-center">
+                            <LoaderCircle className="h-8 w-8 text-blue-500 animate-spin mb-4" />
+                            <h3 className="text-lg font-semibold mb-2">Connecting to NAS...</h3>
+                            <p className="text-slate-600 mb-1">Connecting to {activeConn.name}</p>
+                            <p className="text-xs text-slate-500 mb-4">{activeConn.ip}:{activeConn.port}</p>
+                            <button
+                                type="button"
+                                onClick={cancelConnect}
+                                className="inline-flex items-center gap-2 rounded-lg border border-rose-200 bg-rose-50 px-4 py-2 text-sm font-medium text-rose-700 shadow-sm transition hover:bg-rose-100 hover:border-rose-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-400/40 focus-visible:ring-offset-2 focus-visible:ring-offset-white active:translate-y-px"
+                            >
+                                <XCircle className="h-4 w-4 text-rose-600" />
+                                Cancel
+                            </button>
                         </div>
                     </div>
                 </div>

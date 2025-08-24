@@ -10,7 +10,11 @@ const App = () => {
       {!connected ? (
         <ConnectionScreen onConnect={() => setConnected(true)} />
       ) : (
-        <Files onDisconnect={() => setConnected(false)} />
+        <Files
+          onDisconnect={() => setConnected(false)}
+          ip="192.168.1.100"
+          port={22}
+        />
       )}
     </>
   );

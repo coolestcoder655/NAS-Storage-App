@@ -1,61 +1,8 @@
-import React from "react";
+import { useEffect, useState, useRef } from "react";
+import { Server as ServerIcon, Plus, Wifi, LoaderCircle, CheckCircle2 } from "lucide-react";
+import ServerCard, { SavedConn } from "./components/Server";
 
-// Simple inline SVG icons so we don't add any deps
-const ServerIcon = ({ className = "w-6 h-6" }: { className?: string }) => (
-  <svg
-    className={className}
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="1.5"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    aria-hidden
-  >
-    <rect x="3" y="4" width="18" height="6" rx="2" />
-    <rect x="3" y="14" width="18" height="6" rx="2" />
-    <path d="M7 7h.01M11 7h.01M7 17h.01M11 17h.01" />
-  </svg>
-);
-
-const PlusIcon = ({ className = "w-5 h-5" }: { className?: string }) => (
-  <svg
-    className={className}
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="1.5"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    aria-hidden
-  >
-    <path d="M12 5v14M5 12h14" />
-  </svg>
-);
-
-const WifiIcon = ({ className = "w-5 h-5", colorClass = "text-emerald-500" }: { className?: string; colorClass?: string }) => (
-  <svg
-    className={`${className} ${colorClass}`}
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="1.5"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    aria-hidden
-  >
-    <path d="M2 8.82a16 16 0 0 1 20 0" />
-    <path d="M5 12.5a11 11 0 0 1 14 0" />
-    <path d="M8.5 16a6 6 0 0 1 7 0" />
-    <circle cx="12" cy="19" r="1.25" fill="currentColor" stroke="none" />
-  </svg>
-);
-
-type SavedConn = {
-  name: string;
-  detail: string;
-  protocol: string;
-};
+// Switch to lucide-react icons
 
 const savedConnections: SavedConn[] = [
   { name: "Home NAS", detail: "192.168.1.100:22", protocol: "SFTP" },
@@ -63,10 +10,58 @@ const savedConnections: SavedConn[] = [
   { name: "Media Server", detail: "192.168.1.200:22", protocol: "SFTP" },
 ];
 
+
+
 const App: React.FC = () => {
-  const [modalMode, setModalMode] = React.useState<null | "new" | "direct">(null);
+  const [modalMode, setModalMode] = useState<null | "new" | "direct">(null);
+  const [activeConn, setActiveConn] = useState<SavedConn | null>(null);
+  const [connectStep, setConnectStep] = useState<number>(-1); // -1 = idle, 0..2 steps
+  const stepTimer = useRef<number | null>(null);
 
   const closeModal = () => setModalMode(null);
+
+  const cancelConnect = () => {
+    if (stepTimer.current) {
+      clearTimeout(stepTimer.current);
+      stepTimer.current = null;
+    }
+    setConnectStep(-1);
+    setActiveConn(null);
+  };
+
+  const startConnectFlow = (conn: SavedConn) => {
+    setModalMode(null); // ensure form modal closed
+    setActiveConn(conn);
+    setConnectStep(0);
+  };
+
+  useEffect(() => {
+    if (connectStep === -1) return;
+
+    if (stepTimer.current) {
+      clearTimeout(stepTimer.current);
+    }
+
+    // delays per step to visualize progress
+    const delays = [1200, 1400, 1200];
+    const currentDelay = delays[Math.min(connectStep, delays.length - 1)];
+
+    stepTimer.current = window.setTimeout(() => {
+      if (connectStep < 2) {
+        setConnectStep((s) => s + 1);
+      } else {
+        // success shown, then close
+        cancelConnect();
+      }
+    }, currentDelay) as unknown as number;
+
+    return () => {
+      if (stepTimer.current) {
+        clearTimeout(stepTimer.current);
+        stepTimer.current = null;
+      }
+    };
+  }, [connectStep]);
 
   return (
     <div className="min-h-screen bg-gray-50 text-slate-800">
@@ -75,18 +70,20 @@ const App: React.FC = () => {
         <div className="mx-auto flex max-w-5xl items-center justify-between px-6 py-4">
           <div className="flex items-center gap-3">
             <span className="inline-flex items-center justify-center rounded-md bg-slate-100 p-2 text-slate-700">
-              <ServerIcon className="h-6 w-6" />
+              <ServerIcon className="h-5 w-5" />
             </span>
-            <h1 className="text-xl font-semibold tracking-tight">NAS File Manager</h1>
+            <span className="font-semibold">NAS Storage</span>
           </div>
-          <button
-            type="button"
-            onClick={() => setModalMode("new")}
-            className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-3.5 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
-          >
-            <PlusIcon />
-            New Connection
-          </button>
+          <div>
+            <button
+              type="button"
+              onClick={() => setModalMode("new")}
+              className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50"
+            >
+              <Plus className="h-5 w-5" />
+              New Connection
+            </button>
+          </div>
         </div>
       </header>
 
@@ -97,23 +94,7 @@ const App: React.FC = () => {
           <h2 className="mb-4 text-lg font-semibold">Saved Connections</h2>
           <div className="space-y-3">
             {savedConnections.map((c) => (
-              <div
-                key={c.name}
-                className="group flex items-center justify-between rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm transition hover:shadow-md"
-              >
-                <div className="flex items-center gap-4">
-                  <div className="rounded-md bg-slate-100 p-2 text-slate-600">
-                    <ServerIcon className="h-6 w-6" />
-                  </div>
-                  <div>
-                    <div className="font-medium text-slate-900">{c.name}</div>
-                    <div className="text-xs text-slate-500">
-                      {c.detail} ({c.protocol})
-                    </div>
-                  </div>
-                </div>
-                <WifiIcon />
-              </div>
+              <ServerCard key={c.name} conn={c} startConnectFlow={startConnectFlow} />
             ))}
           </div>
         </section>
@@ -128,7 +109,7 @@ const App: React.FC = () => {
               className="flex w-full items-center gap-3 rounded-lg p-2 text-left transition hover:bg-slate-50"
             >
               <span className="rounded-md bg-blue-50 p-2 text-blue-600">
-                <WifiIcon className="h-6 w-6" colorClass="text-blue-600" />
+                <Wifi className="h-6 w-6 text-blue-600" />
               </span>
               <div>
                 <div className="font-medium">Direct Connect</div>
@@ -228,6 +209,43 @@ const App: React.FC = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Connection Progress Modal */}
+      {activeConn && connectStep >= 0 && (
+        <div className="fixed inset-0 z-50 flex items-start justify-center">
+          <div className="absolute inset-0 bg-white" onClick={cancelConnect} />
+          <div className="relative mt-24 w-full max-w-lg rounded-xl bg-white p-8 shadow-xl">
+            {/* corner icon */}
+            <div className="absolute left-4 top-4">
+              {connectStep < 2 ? (
+                <LoaderCircle className={`h-6 w-6 ${connectStep === 0 ? "text-blue-500" : "text-amber-500"} animate-spin`} />
+              ) : (
+                <CheckCircle2 className="h-7 w-7 text-emerald-500" />
+              )}
+            </div>
+            <div className="text-center">
+              <h3 className="text-lg font-semibold">
+                {connectStep === 0 && "Connecting to NAS..."}
+                {connectStep === 1 && "Authenticating..."}
+                {connectStep === 2 && "Connected successfully!"}
+              </h3>
+              <p className="mt-2 text-slate-600">Connecting to {activeConn.name}</p>
+              <p className="mt-2 text-xs text-slate-500">
+                {activeConn.detail} ({activeConn.protocol})
+              </p>
+              <div className="mt-6">
+                <button
+                  type="button"
+                  onClick={cancelConnect}
+                  className="text-sm font-medium text-slate-600 hover:text-slate-800"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

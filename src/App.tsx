@@ -2,7 +2,6 @@ import { useEffect, useState, useRef } from "react";
 import { Server as ServerIcon, Plus, Wifi, LoaderCircle, CheckCircle2 } from "lucide-react";
 import ServerCard, { SavedConn } from "./components/Server";
 
-// Switch to lucide-react icons
 
 const savedConnections: SavedConn[] = [
   { name: "Home NAS", detail: "192.168.1.100:22", protocol: "SFTP" },
@@ -215,9 +214,9 @@ const App: React.FC = () => {
 
       {/* Connection Progress Modal */}
       {activeConn && connectStep >= 0 && (
-        <div className="fixed inset-0 z-50 flex items-start justify-center">
-          <div className="absolute inset-0 bg-white" onClick={cancelConnect} />
-          <div className="relative mt-24 w-full max-w-lg rounded-xl bg-white p-8 shadow-xl">
+        <div className="fixed inset-0 z-50 flex items-center bg-white justify-center">
+          <div className="absolute inset-0" onClick={cancelConnect} />
+          <div className="relative w-full max-w-lg rounded-xl bg-white p-8 shadow-xl">
             {/* corner icon */}
             <div className="absolute left-4 top-4">
               {connectStep < 2 ? (

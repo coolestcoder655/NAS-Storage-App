@@ -64,6 +64,10 @@ const savedConnections: SavedConn[] = [
 ];
 
 const App: React.FC = () => {
+  const [modalMode, setModalMode] = React.useState<null | "new" | "direct">(null);
+
+  const closeModal = () => setModalMode(null);
+
   return (
     <div className="min-h-screen bg-gray-50 text-slate-800">
       {/* Top bar */}
@@ -77,6 +81,7 @@ const App: React.FC = () => {
           </div>
           <button
             type="button"
+            onClick={() => setModalMode("new")}
             className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-3.5 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
           >
             <PlusIcon />
@@ -119,6 +124,7 @@ const App: React.FC = () => {
           <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
             <button
               type="button"
+              onClick={() => setModalMode("direct")}
               className="flex w-full items-center gap-3 rounded-lg p-2 text-left transition hover:bg-slate-50"
             >
               <span className="rounded-md bg-blue-50 p-2 text-blue-600">
@@ -132,6 +138,99 @@ const App: React.FC = () => {
           </div>
         </section>
       </main>
+
+      {/* Modal (static form) */}
+      {modalMode && (
+        <div className="fixed inset-0 z-50 flex items-start justify-center">
+          {/* Backdrop */}
+          <div className="absolute inset-0 bg-slate-900/40" onClick={closeModal} />
+
+          {/* Dialog */}
+          <div className="relative mt-20 w-full max-w-lg rounded-xl bg-white p-6 shadow-xl">
+            <h3 className="mb-4 text-lg font-semibold">
+              {modalMode === "new" ? "Create New Connection" : "Direct Connect"}
+            </h3>
+
+            <form className="space-y-3">
+              {modalMode === "new" && (
+                <div>
+                  <label className="mb-1 block text-sm text-slate-600">Connection Name</label>
+                  <input
+                    type="text"
+                    placeholder="Connection Name"
+                    className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+                  />
+                </div>
+              )}
+
+              <div>
+                <label className="mb-1 block text-sm text-slate-600">IP Address</label>
+                <input
+                  type="text"
+                  placeholder="IP Address"
+                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="mb-1 block text-sm text-slate-600">Port</label>
+                  <input
+                    type="number"
+                    placeholder="22"
+                    defaultValue={22}
+                    className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+                  />
+                </div>
+                <div>
+                  <label className="mb-1 block text-sm text-slate-600">Protocol</label>
+                  <select
+                    className="w-full appearance-none rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+                    defaultValue="SFTP"
+                  >
+                    <option value="SFTP">SFTP</option>
+                    <option value="FTP">FTP</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="mb-1 block text-sm text-slate-600">Username</label>
+                <input
+                  type="text"
+                  placeholder="Username"
+                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+                />
+              </div>
+
+              <div>
+                <label className="mb-1 block text-sm text-slate-600">Password</label>
+                <input
+                  type="password"
+                  placeholder="Password"
+                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+                />
+              </div>
+
+              <div className="mt-5 flex items-center justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={closeModal}
+                  className="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  className="inline-flex items-center justify-center rounded-lg bg-blue-600 px-5 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700"
+                >
+                  {modalMode === "new" ? "Create" : "Connect"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from "react";
-import { Server as ServerIcon, Plus, Wifi, LoaderCircle, CheckCircle2 } from "lucide-react";
+import { Server as ServerIcon, Plus, Wifi, LoaderCircle, CheckCircle2, XCircle } from "lucide-react";
 import ServerCard, { SavedConn } from "./components/Server";
 
 
@@ -217,15 +217,15 @@ const App: React.FC = () => {
         <div className="fixed inset-0 z-50 flex items-center bg-white justify-center">
           <div className="absolute inset-0" onClick={cancelConnect} />
           <div className="relative w-full max-w-lg rounded-xl bg-white p-8 shadow-xl">
-            {/* corner icon */}
-            <div className="absolute left-4 top-4">
+            {/* centered status icon */}
+            <div className="absolute top-4 left-1/2 -translate-x-1/2">
               {connectStep < 2 ? (
                 <LoaderCircle className={`h-6 w-6 ${connectStep === 0 ? "text-blue-500" : "text-amber-500"} animate-spin`} />
               ) : (
                 <CheckCircle2 className="h-7 w-7 text-emerald-500" />
               )}
             </div>
-            <div className="text-center">
+            <div className="text-center mt-5">
               <h3 className="text-lg font-semibold">
                 {connectStep === 0 && "Connecting to NAS..."}
                 {connectStep === 1 && "Authenticating..."}
@@ -239,8 +239,9 @@ const App: React.FC = () => {
                 <button
                   type="button"
                   onClick={cancelConnect}
-                  className="text-sm font-medium text-slate-600 hover:text-slate-800"
+                  className="inline-flex items-center gap-2 rounded-lg border border-rose-200 bg-rose-50 px-4 py-2 text-sm font-medium text-rose-700 shadow-sm transition hover:bg-rose-100 hover:border-rose-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-400/40 focus-visible:ring-offset-2 focus-visible:ring-offset-white active:translate-y-px"
                 >
+                  <XCircle className="h-4 w-4 text-rose-600" />
                   Cancel
                 </button>
               </div>
